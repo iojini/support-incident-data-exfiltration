@@ -86,27 +86,23 @@ DeviceProcessEvents
 
 ---
 
-### 4. Searched the `DeviceLogonEvents` Table for successful network logons
+### 4. Host Context Reconnaissance
 
-The only successful remote network logons in the last 30 days was for the labuser account (53 total).
+Searched for host reconnaissance commands and identified a qwinsta session query executed on 10/09/2025 at 12:51 PM (i.e., 2025-10-09T12:51:44.3425653Z).
 
 **Query used to locate events:**
 
 ```kql
-//Successful logons
-DeviceLogonEvents
-| where DeviceName == "irene-test-vm-m"
-| where LogonType == "Network"
-| where ActionType == "LogonSuccess"
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine contains "qwi"
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName
+| sort by TimeGenerated desc
 
-//Number of successful logons by account owner
-DeviceLogonEvents
-| where DeviceName == "irene-test-vm-m"
-| where LogonType == "Network"
-| where ActionType == "LogonSuccess"
-| where AccountName == "labuser"
-| summarize count()
 ```
+<img width="1783" height="473" alt="Query4 Results" src="https://github.com/user-attachments/assets/1319b432-7596-4cd3-b20a-a38982c6caac" />
+
 ---
 
 ### 5. Searched the `DeviceLogonEvents` Table for failed network logon attempts by account owner
