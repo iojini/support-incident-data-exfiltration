@@ -6,28 +6,44 @@
 
 Subsequent analysis of a routine support request reveals behavior inconsistent with typical remote assistance. Multiple artifacts were left behind, including unusual process executions and system modifications. Notably, a post-session narrative was introduced to explain away anomalies, though forensic traces suggest a premeditated sequence of access and manipulation. This investigation seeks to reconstruct the timeline of activity and determine whether the actions taken were aligned with support protocols or if they were intentionally staged under the guise of assistance.
 
-## Platforms and Languages Leveraged
-- Windows 10 Virtual Machines (Microsoft Azure)
-- EDR Platform: Microsoft Defender for Endpoint
-- Kusto Query Language (KQL)
+## Background
+**Incident Date:** 09 October 2025  
+**Compromised Host:** gab-intern-vm  
 
 ---
 
 ## Steps Taken
 
-### 1. Searched the `DeviceInfo` table to identify internet-facing instances of the device
+### 1. Initial Execution Detection
 
-Searched the DeviceInfo table and discovered that the device ("irene-test-vm-m") was internet-facing for several days, with the most recent occurrence at 2025-10-16T17:36:02.4227451Z.
+Searched for files created in the user's Downloads folder during the investigation timeframe and discovered SupportTool.ps1 created on 10/9/2025 at 12:22 PM by powershell.exe in the user's Downloads folder at C:\Users\g4bri3lintern\Downloads\. Next, searched for the execution of SupportTool.ps1 to identify command-line parameters. The first execution revealed the attacker used -ExecutionPolicy Bypass to circumvent PowerShell security controls by bypassing PowerShell's execution policy. 
 
-**Query used to locate events:**
+**Queries used to locate events:**
 
 ```kql
-DeviceInfo
-| where DeviceName == "irene-test-vm-m"
-| where IsInternetFacing == true
-| order by Timestamp desc
+DeviceFileEvents
+| where TimeGenerated between (datetime(2025-10-01) .. datetime(2025-10-15))
+| where DeviceName == "gab-intern-vm"
+| where FileName contains "desk" or FileName contains "help" or FileName contains "support" or FileName contains "tool"
+| where FolderPath contains "Downloads"
+| project TimeGenerated, FileName, FolderPath, ActionType, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
 ```
-<img width="3292" height="1436" alt="IF1" src="https://github.com/user-attachments/assets/c84a74ea-4f85-4f59-a6d0-99dd2217f316" />
+<img width="2685" height="459" alt="Query1A Results" src="https://github.com/user-attachments/assets/e539c268-b75e-4aa1-9985-ca00d6f96a0d" />
+
+---
+
+```kql
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine contains "SupportTool.ps1"
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName, AccountName
+| sort by TimeGenerated asc
+
+```
+<img width="2868" height="657" alt="Query1B Results" src="https://github.com/user-attachments/assets/c2c3abe4-f2fe-446f-b99c-36f6eea3cc2c" />
 
 ---
 
