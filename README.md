@@ -47,22 +47,23 @@ DeviceProcessEvents
 
 ---
 
-### 2. Searched the `DeviceLogonEvents` table to identify remote IP addresses with failed logon attempts
+### 2. Defense Disabling
 
-Based on the logs returned, several threat actors have been discovered attempting to log in to the target machine. Multiple failed logon attempts were identified from various remote IPs, with the results grouped and ordered by the number of attempts from each IP address. For example, 185.39.19.56 failed to log in to the target machine 100 times and 45.227.254.130 failed to log in to the target machine 93 times.
+Searched for evidence of staged artifacts and discovered that DefenderTamperArtifact.lnk was created on 10/09/2025 at 12:34 PM. This shortcut file in the Recent folder indicates that the attacker may have manually accessed a file designed to simulate Windows Defender tampering.
 
 **Query used to locate events:**
 
 ```kql
-DeviceLogonEvents
-| where DeviceName == "irene-test-vm-m"
-| where LogonType has_any("Network", "Interactive", "RemoteInteractive", "Unlock")
-| where ActionType == "LogonFailed"
-| where isnotempty(RemoteIP)
-| summarize Attempts = count() by ActionType, RemoteIP, DeviceName
-| order by Attempts
+DeviceFileEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where FolderPath contains "Recent"
+| where ActionType == "FileCreated"
+| project TimeGenerated, FileName, FolderPath, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
 ```
-<img width="2809" height="1524" alt="IF2_2" src="https://github.com/user-attachments/assets/d93ecb1b-223b-4238-a141-de06a9a28ac1" />
+<img width="1954" height="876" alt="Query2 Results" src="https://github.com/user-attachments/assets/4808772a-3c7e-4b05-a7dc-8523b7ff72cf" />
 
 ---
 
