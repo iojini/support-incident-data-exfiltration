@@ -320,17 +320,22 @@ The analysis revealed that the target device, gab-intern-vm, was compromised and
 
 | TTP ID | TTP Name | Description | Detection Relevance |
 |--------|----------|-------------|---------------------|
-| T1133 | External Remote Services | Internet-facing VM inadvertently exposed to the public internet, allowing external access attempts. | Identifies misconfigured devices exposed to the internet through DeviceInfo table queries. |
-| T1046 | Network Service Discovery | External threat actors discovered and identified the exposed service before attempting access. | Indicates potential reconnaissance and scanning by external actors prior to brute-force attempts. |
-| T1110 | Brute Force | Multiple failed login attempts from external IP addresses attempting to gain unauthorized access (e.g., 185.39.19.56 with 100 attempts). | Identifies brute-force login attempts and suspicious login behavior from multiple remote IPs. |
-| T1075 | Pass the Hash | Failed login attempts could suggest credential-based attacks including pass-the-hash techniques. | Identifies failed login attempts from external sources, indicative of credential attacks. |
-| T1021 | Remote Services | Remote network logons via legitimate services showing external interaction attempts with the exposed device. | Identifies legitimate and malicious remote service logons to the exposed device. |
-| T1070 | Indicator Removal on Host | No indicators of successful brute-force attacks, demonstrating that defensive measures prevented unauthorized access. | Confirms the lack of successful attacks due to effective monitoring and legitimate account usage. |
-| T1078 | Valid Accounts | Successful logons from the legitimate account 'labuser' were normal and monitored, representing valid credential usage. | Monitors legitimate access and excludes unauthorized access attempts by confirming expected IP sources. |
+| T1059.001 | PowerShell | Malicious PowerShell script executed with bypassed execution policy to perform reconnaissance and establish persistence. | Identifies initial execution and subsequent malicious activity via PowerShell commands. |
+| T1027 | Obfuscated Files or Information | Attacker used legitimate-sounding file names (SupportTool.ps1, DefenderTamperArtifact.lnk) to disguise malicious intent. | Indicates deceptive naming conventions to evade detection. |
+| T1564.004 | NTFS File Attributes | Planted artifacts (DefenderTamperArtifact.lnk, SupportChat_log.txt) created to establish false narratives. | Identifies staged evidence designed to mislead investigators. |
+| T1115 | Clipboard Data | PowerShell command used to capture clipboard contents containing potentially sensitive information. | Detects opportunistic data theft from transient sources. |
+| T1082 | System Information Discovery | Multiple reconnaissance commands executed including query session, wmic logicaldisk, and tasklist. | Indicates comprehensive host enumeration prior to further exploitation. |
+| T1033 | System Owner/User Discovery | Used whoami /groups to enumerate current user privileges and group memberships. | Identifies privilege surface checks to inform escalation attempts. |
+| T1049 | System Network Connections Discovery | Network connectivity validated through RuntimeBroker.exe and connectivity tests. | Indicates network reconnaissance and egress validation. |
+| T1057 | Process Discovery | Tasklist.exe executed to enumerate running processes and identify security tools. | Detects runtime application inventory for evasion planning. |
+| T1567.002 | Exfiltration to Cloud Storage | Staged artifacts bundled into ReconArtifacts.zip and upload capability tested via httpbin.org. | Identifies data staging and exfiltration validation attempts. |
+| T1053.005 | Scheduled Task | Created SupportToolUpdater scheduled task with ONLOGON trigger for persistence. | Detects automated re-execution mechanism for long-term access. |
+| T1547.001 | Registry Run Keys / Startup Folder | Registry autorun entry RemoteAssistUpdater created as fallback persistence mechanism. | Identifies redundant persistence via registry modification. |
+| T1070.009 | Clear Persistence Artifacts | Planted SupportChat_log.txt to create cover story justifying suspicious activity. | Detects fabricated narratives designed to deflect investigation. |
 
 ---
 
-This table organizes the MITRE ATT&CK techniques (TTPs) observed during the investigation. The detection methods identified both the attack attempts (brute force from external IPs) and confirmed that no unauthorized access occurred, with all successful logons representing legitimate user activity.
+This table organizes the MITRE ATT&CK techniques (TTPs) observed during the investigation. The detection methods identified both the attack techniques (e.g., PowerShell execution, clipboard theft, reconnaissance, persistence mechanisms) and confirmed the sophistication of the attack, with multiple layers of obfuscation and deception.
 
 ---
 
@@ -338,13 +343,15 @@ This table organizes the MITRE ATT&CK techniques (TTPs) observed during the inve
 
 | MITRE Mitigation ID | Name | Action Taken | Description | Relevance |
 |---------------------|------|--------------|-------------|-----------|
-| M1030 | Network Segmentation | Network Security Group Hardening | Reconfigured the NSG attached to 'irene-test-vm-m' to restrict RDP access to authorized IP addresses only, eliminating public internet exposure. | Prevents unauthorized external access by limiting remote access to trusted sources only. |
-| M1036 | Account Use Policies | Account Lockout Policy Implementation | Implemented account lockout thresholds to automatically lock accounts after a specified number of failed login attempts. | Mitigates brute-force attack risks by preventing unlimited password guessing attempts. |
-| M1032 | Multi-factor Authentication | Multi-Factor Authentication Deployment | Deployed MFA for all network logon types, requiring additional authentication factors beyond passwords. | Adds an additional security layer to prevent unauthorized access even if credentials are compromised. |
-| M1047 | Audit | Continuous Monitoring Configuration | Established ongoing monitoring of DeviceInfo and DeviceLogonEvents tables for configuration changes and suspicious login activity. | Enables early detection of future misconfigurations or unauthorized access attempts. |
+| M1038 | Execution Prevention | PowerShell Constrained Language Mode | Implemented PowerShell Constrained Language Mode on intern workstations to restrict unapproved script execution and prevent -ExecutionPolicy Bypass. | Prevents unauthorized script execution by enforcing language restrictions. |
+| M1026 | Privileged Account Management | Account Credential Reset | Reset credentials for user account "g4bri3lintern" and implemented mandatory password change with MFA enrollment. | Mitigates unauthorized access risks by invalidating potentially compromised credentials. |
+| M1031 | Network Intrusion Prevention | Network Egress Filtering | Blocked outbound connections to testing/debugging services (httpbin.org, example.com) at network perimeter. | Prevents data exfiltration to known testing endpoints. |
+| M1047 | Audit | Enhanced PowerShell Logging | Enabled PowerShell script block logging and module logging across all endpoints to capture full command execution context. | Enables early detection of future malicious PowerShell activity and provides forensic evidence. |
+| M1018 | User Account Management | Account Lockout Policy Enhancement | Implemented stricter account lockout thresholds for intern accounts after suspicious activity detection. | Adds additional security layer to prevent unauthorized access attempts. |
+| M1017 | User Training | Security Awareness Training | Conducted mandatory security awareness retraining for affected user and intern cohort focusing on social engineering and fraudulent support requests. | Reduces likelihood of future social engineering success. |
 
 ---
 
-The following response actions were taken: reconfigured the NSG attached to the target machine to restrict RDP access to authorized endpoints only, removing public internet exposure; implemented account lockout thresholds to prevent brute-force attacks by automatically locking accounts after excessive failed login attempts; deployed MFA for network authentication to provide additional security beyond password-based access; established ongoing monitoring for configuration changes and suspicious login activity.
+The following response actions were recommended: isolating the compromised endpoint from the network to prevent further malicious activity; removing scheduled task SupportToolUpdater and registry persistence entry RemoteAssistUpdater; deleting malicious artifacts including SupportTool.ps1, DefenderTamperArtifact.lnk, SupportChat_log.txt, and ReconArtifacts.zip; resetting user credentials and enforcing MFA; conducting full antimalware scans with updated signatures; implementing enhanced monitoring for PowerShell execution with bypass parameters; blocking connections to testing services at network perimeter; and establishing detection rules for clipboard access attempts and reconnaissance commands.
 
 ---
