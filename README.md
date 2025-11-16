@@ -105,47 +105,214 @@ DeviceProcessEvents
 
 ---
 
-### 5. Searched the `DeviceLogonEvents` Table for failed network logon attempts by account owner
+### 5. Storage Surface Mapping
 
-There were zero (0) failed logons for the ‘labuser’ account, indicating that a brute force attempt for this account didn’t take place, and a 1-time password guess is unlikely (i.e., this likely represents legitimate activity by the actual user; however, can't rule out that an attacker may already know the username and password obtained through other means including phishing, credential dumps, password reuse, etc).
+Searched for storage-related reconnaissance by querying storage enumeration commands. The second command tied to this activity was: "cmd.exe" /c wmic logicaldisk get name,freespace,size, likely used for checking local disk space.
 
 **Query used to locate events:**
 
 ```kql
-DeviceLogonEvents
-| where DeviceName == "irene-test-vm-m"
-| where LogonType == "Network"
-| where ActionType == "LogonFailed"
-| where AccountName == "labuser"
-| summarize count()
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine has_any ("net share", "net use", "wmic logicaldisk", "Get-PSDrive")
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName
+| sort by TimeGenerated asc
 
+```
+<img width="2000" height="347" alt="Query5 Results" src="https://github.com/user-attachments/assets/64f12ca7-6b53-4bd2-9f74-d51d4894b5ec" />
+
+---
+
+### 6. Connectivity and Name Resolution Check 
+
+Searched for network reachability and name resolution checks and discovered connectivity checks initiated by RuntimeBroker.exe as the parent process.
+
+**Query used to locate events:**
+
+```kql
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine has_any ("ping", "nslookup", "Test-Connection", "Resolve-DnsName", "ipconfig", "tracert", "Test-NetConnection")
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessParentFileName, InitiatingProcessCommandLine
+| sort by TimeGenerated asc
+
+```
+<img width="2867" height="597" alt="Query6 Results" src="https://github.com/user-attachments/assets/9f50369b-c546-49e4-a907-d92003348b94" />
+
+---
+
+### 7. Interactive Session Discovery
+
+Searched for session enumeration and identified that the PowerShell session (InitiatingProcessUniqueId: 2533274790397065) executed on 10/9/2025 at 12:50 PM was the initiating process of cmd.exe running qwinsta in order to detect active user sessions which helps the attacker decide their next step (i.e., act immediately or wait).
+
+**Query used to locate events:**
+
+```kql
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine contains "qwi"
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessUniqueId
+| sort by TimeGenerated asc
+
+```
+<img width="2432" height="459" alt="Query7 Results" src="https://github.com/user-attachments/assets/d46fcc05-35ab-4231-89e0-f07fc62dff24" />
+
+---
+
+### 8. Runtime Application Inventory
+
+Searched for process enumeration commands and discovered that the attacker used tasklist /v to get a complete inventory of all running processes, applications, and services on the host. Also, identified that the file name of the process that was used for runtime inventory was tasklist.exe.
+
+**Query used to locate events:**
+
+```kql
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine contains ("tasklist")
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName
+| sort by TimeGenerated desc
+
+```
+<img width="1908" height="322" alt="Query8 Results" src="https://github.com/user-attachments/assets/8af07514-4dfd-41cc-8433-b2700ab2bfeb" />
+
+---
+
+### 9. Privilege Surface Check
+
+Searched for privilege enumeration commands and discovered that the first privilege check occurred at 2025-10-09T12:52:14.3135459Z. The attacker used whoami /groups to enumerate the group memberships of the user in an attempt to understand what privileges they had. This allows the attacker to decide whether they could proceed with their current access level or if they need to attempt privilege escalation.
+
+**Query used to locate events:**
+
+```kql
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine has_any ("whoami")
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
+```
+<img width="1918" height="727" alt="Query9 Results" src="https://github.com/user-attachments/assets/3fc9d937-1fc6-4fa5-b5e1-2d6357adfaaa" />
+
+---
+
+### 10. Proof-of-Access and Egress Validation
+
+Searched for outbound connectivity tests and identified that the first outbound destination contacted was www.msftconnecttest.com which is a Microsoft connectivity test endpoint used to validate internet connectivity. In other words, the attacker used a legitimate Microsoft connectivity test service to validate outbound internet access before attempting data exfiltration.
+
+**Query used to locate events:**
+
+```kql
+DeviceNetworkEvents
+| where TimeGenerated between (datetime(2025-10-09 12:50:00) .. datetime(2025-10-09 13:50:00))
+| where DeviceName == "gab-intern-vm"
+| where InitiatingProcessFileName == "powershell.exe"
+| project TimeGenerated, RemoteUrl, RemoteIP, InitiatingProcessCommandLine, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
+```
+<img width="2551" height="382" alt="Query10 Results" src="https://github.com/user-attachments/assets/25055020-f770-4c80-8b29-1275aa3af22f" />
+
+---
+
+### 11. Bundling and Staging Artifacts 
+
+Searched for signs of file consolidation and packaging and identified that the first folder used for bundling the collected data was: C:\Users\Public\ReconArtifacts.zip.
+
+**Query used to locate events:**
+
+```kql
+DeviceFileEvents
+| where TimeGenerated between (datetime(2025-10-09 12:50:00) .. datetime(2025-10-09 13:50:00))
+| where DeviceName == "gab-intern-vm"
+| where FileName endswith ".zip"
+| project TimeGenerated, FileName, FolderPath, ActionType, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
+```
+<img width="2724" height="605" alt="Query11 Results" src="https://github.com/user-attachments/assets/d081aed5-7724-4a7e-b5d7-b70c4c29cf05" />
+
+---
+### 12. Outbound Transfer Attempt
+
+Searched for unusual outbound connections and found that a connection to 100.29.147.161 (i.e., httpbin.org) occurred at 1:00:40 PM. Note: httpbin.org is a publicly available testing service used to validate HTTP upload capability.
+
+**Query used to locate events:**
+
+```kql
+DeviceNetworkEvents
+| where TimeGenerated between (datetime(2025-10-09 13:00:00) .. datetime(2025-10-09 14:00:00))
+| where DeviceName == "gab-intern-vm"
+| where RemoteUrl != ""
+| project TimeGenerated, RemoteUrl, RemoteIP, RemotePort, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
+```
+<img width="2443" height="926" alt="Query12 Results" src="https://github.com/user-attachments/assets/68136d27-1688-4020-8571-b83102914bec" />
+
+---
+
+### 13. Scheduled Re-execution Persistence
+
+Searched for scheduled task creation commands and found a scheduled task named SupportToolUpdater configured to run ONLOGON. This ensures that SupportTool.ps1 runs automatically every time the user logs in. Additional parameters include -WindowStyle (set to Hidden) and -ExecutionPolicy (set to Bypass), allowing it to execute while avoiding detection and bypassing security.
+
+**Query used to locate events:**
+
+```kql
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine contains "schtasks"
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
+```
+<img width="2783" height="323" alt="Query13 Results" src="https://github.com/user-attachments/assets/d1bdcde3-14ad-45f3-8a55-6c8c0f11e292" />
+
+---
+
+### 14. Autorun Fallback Persistence
+
+Searched for registry modifications for autorun fallback persistence. Although DeviceRegistryEvents showed no results, the attacker created a registry value named RemoteAssistUpdater as part of their fallback persistence mechanism. In other words, the attacker created redundant persistence so if the primary persistence mechanism (i.e., the scheduled task) is removed or disabled, this will keep them in the system.
+
+**Query used to locate events:**
+
+```kql
+DeviceRegistryEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where RegistryKey contains "run"
+| project TimeGenerated, RegistryKey, RegistryValueName, RegistryValueData, InitiatingProcessFileName, InitiatingProcessCommandLine
+| sort by TimeGenerated asc
 ```
 ---
 
-### 6. Searched the `DeviceLogonEvents` table to identify successful network logons by the account owner and the source of the logon activity 
+### 15. Planted Narrative and Cover Artifact
 
-Searched for remote IP addresses that successfully logged in as 'labuser' to assess whether the activity originated from unusual or unexpected locations. Based on the results, the IP address was consistent with expected/legitimate sources.
-
+Searched for explanatory artifacts created around the time of the suspicious activity that might serve as planted narratives and identified that the file name of the artifact left behind was SupportChat_log.lnk.
 
 **Query used to locate events:**
 
 ```kql
-DeviceLogonEvents
-| where DeviceName == "irene-test-vm-m"
-| where LogonType == "Network"
-| where ActionType == "LogonSuccess"
-| where AccountName == "labuser"
-| summarize LoginCount = count() by DeviceName, ActionType, AccountName, RemoteIP
+DeviceFileEvents
+| where TimeGenerated between (datetime(2025-10-09 12:20:00) .. datetime(2025-10-09 14:00:00))
+| where DeviceName == "gab-intern-vm"
+| where FileName contains "Support"
+| project TimeGenerated, FileName, FolderPath, ActionType, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
 ```
-<img width="2848" height="453" alt="IF_3" src="https://github.com/user-attachments/assets/516575b1-d820-4c1a-9389-9d4a00543a5a" />
+<img width="2470" height="659" alt="Query15 Results" src="https://github.com/user-attachments/assets/b5ce65ce-b182-4f81-bc4c-7cf78cdd2618" />
 
 ---
 
 ## Summary
 
-The analysis revealed that the target device was internet-facing for several days, with the most recent occurrence on October 16, 2025. During this exposure period, multiple threat actors attempted to gain unauthorized access to the device. Analysis of failed logon attempts identified numerous external IP addresses conducting brute-force attacks, with some IPs attempting to log in over 90 times (e.g., 185.39.19.56 with 100 failed attempts, 45.227.254.130 with 93 failed attempts).
-
-Critically, none of the identified threat actor IP addresses successfully gained access to the system. Further investigation revealed that the only successful network logons during the last 30 days were associated with the 'labuser' account (53 total). Notably, there were zero failed logon attempts for this account, and the successful logons originated from an IP address consistent with expected and legitimate sources. In summary, no indicators of compromise (IOC) were found.
+The analysis revealed that the target device, gab-intern-vm, was compromised and the subsequent attacks were disguised as a legitimate support session. The attacker orchestrated a multi-stage attack including the execution of a malicious PowerShell script with bypassed security policies, planted artifacts to create false narratives, clipboard content exfiltration, extensive reconnaissance (i.e., host enumeration, session discovery, storage mapping, connectivity validation, process inventory, and privilege checks), egress validation which involved testing internet connectivity and upload capability, the consolidation of collected artifacts into compressed archives, dual persistence (i.e., scheduled tasks and registry autoruns for long-term access), and fabricated support chat logs. The sophistication of this attack hints at an experienced threat actor with knowledge of defensive detection capabilities.
 
 ---
 
