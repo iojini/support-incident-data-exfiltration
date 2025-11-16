@@ -1,7 +1,6 @@
 # Threat Hunt Report: Fabricated Support Incident and Data Exfiltration
 
-<img width="1024" height="1051" alt="Data Exfiltration Image v4" src="https://github.com/user-attachments/assets/5c8d7314-156f-4769-9006-09697b82ad85" />
-<img width="1024" height="724" alt="Data Exfiltration Image v3" src="https://github.com/user-attachments/assets/23a6c030-399b-4b75-80cd-4fd7c028e2f1" />
+<img width="1024" height="965" alt="Data Exfiltration Image v5" src="https://github.com/user-attachments/assets/103db624-3abf-44be-88ac-8772cb1b101b" />
 
 ##  Scenario
 
