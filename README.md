@@ -67,19 +67,23 @@ DeviceFileEvents
 
 ---
 
-### 3. Searched the `DeviceLogonEvents` Table for successful logons from suspicious IP addresses
+### 3. Data Probe
 
-Searched for any indication of successful logons from the IP addresses with the most failed login attempts. Based on the logs returned, no successful logons were identified from these IP addresses.
+Searched for clipboard access attempts and discovered the attacker executed the following clipboard data probe: "powershell.exe" -NoProfile -Sta -Command "try { Get-Clipboard | Out-Null } catch { }" on 10/09/2025 at 12:50 PM. This PowerShell command attempts to quietly query the clipboard, possibly in an attempt to capture any sensitive or copied data present (e.g., passwords or credit card numbers), essentially leveraging Get-Clipboard for a low-effort win.
 
 **Query used to locate events:**
 
 ```kql
-let RemoteIPsInQuestion = dynamic(["185.39.19.56","45.227.254.130", "185.243.96.107", "182.160.114.213", "188.253.1.20"]);
-DeviceLogonEvents
-| where LogonType has_any("Network", "Interactive", "RemoteInteractive", "Unlock")
-| where ActionType == "LogonSuccess"
-| where RemoteIP has_any(RemoteIPsInQuestion)
+DeviceProcessEvents
+| where TimeGenerated between (datetime(2025-10-09) .. datetime(2025-10-10))
+| where DeviceName == "gab-intern-vm"
+| where ProcessCommandLine contains "clip" 
+| project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessFileName
+| sort by TimeGenerated asc
+
 ```
+<img width="2539" height="721" alt="Query3 Results" src="https://github.com/user-attachments/assets/35926e7e-bc2c-4b88-ad02-d602ffd1d054" />
+
 ---
 
 ### 4. Searched the `DeviceLogonEvents` Table for successful network logons
