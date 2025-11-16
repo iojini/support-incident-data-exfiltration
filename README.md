@@ -1,12 +1,11 @@
-# Threat Hunt Report: Accidental Exposure of Assets to the Internet
+# Threat Hunt Report: Fabricated Support Incident and Data Exfiltration
 
-<img width="1540" height="1028" alt="TH2_1E_bordered" src="https://github.com/user-attachments/assets/c8935c1f-3220-46d7-a94d-d4a966444260" />
+<img width="1024" height="1051" alt="Data Exfiltration Image v4" src="https://github.com/user-attachments/assets/5c8d7314-156f-4769-9006-09697b82ad85" />
+<img width="1024" height="724" alt="Data Exfiltration Image v3" src="https://github.com/user-attachments/assets/23a6c030-399b-4b75-80cd-4fd7c028e2f1" />
 
 ##  Scenario
 
-During routine maintenance, the security team is tasked with investigating any VMs in the shared services cluster (e.g., VMs handling DNS, Domain Services, DHCP, etc.) that have mistakenly been exposed to the public internet. During the time the devices were unknowingly exposed to the internet, it’s possible that someone could have brute-force logged into some of the devices since the older devices do not have account lockout configured for excessive failed login attempts. The goal is to identify any misconfigured VMs and check for potential brute-force login attempts/successes from external sources.
-
-- [Scenario Creation](https://github.com/iojini/accidental-asset-exposure-threat-hunt/blob/main/honeypot-implementation-and-map-appendix.md)
+Subsequent analysis of a routine support request reveals behavior inconsistent with typical remote assistance. Multiple artifacts were left behind, including unusual process executions and system modifications. Notably, a post-session narrative was introduced to explain away anomalies, though forensic traces suggest a premeditated sequence of access and manipulation. This investigation seeks to reconstruct the timeline of activity and determine whether the actions taken were aligned with support protocols or if they were intentionally staged under the guise of assistance.
 
 ## Platforms and Languages Leveraged
 - Windows 10 Virtual Machines (Microsoft Azure)
