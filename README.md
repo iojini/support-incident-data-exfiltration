@@ -319,7 +319,7 @@ The analysis revealed that the target device, gab-intern-vm, was compromised and
 ## Timeline
 
 | Time (UTC) | Steps Taken | Action Observed | Key Evidence |
-|--------|----------|-------------|---------------------|
+|:--------:|:----------:|:-------------:|:---------------------:|
 | 2025-10-09T12:22:27.6588913Z | 1 | Initial Execution Detection | Creation of SupportTool.ps1 and execution with -ExecutionPolicy Bypass |
 | 2025-10-09T12:34:59.1260624Z | 2 | Defense Disabling | DefenderTamperArtifact.lnk |
 | 2025-10-09T12:50:39.955931Z | 3 | Quick Data Probe | Get-Clipboard command: "powershell.exe" -NoProfile -Sta -Command "try { Get-Clipboard | Out-Null } catch { }" |
@@ -341,7 +341,7 @@ The analysis revealed that the target device, gab-intern-vm, was compromised and
 ## Relevant MITRE ATT&CK TTPs
 
 | TTP ID | TTP Name | Description | Detection Relevance |
-|--------|----------|-------------|---------------------|
+|:--------:|:----------:|:-------------:|:---------------------:|
 | T1059.001 | PowerShell | Malicious PowerShell script executed with bypassed execution policy to perform reconnaissance and establish persistence. | Identifies initial execution and subsequent malicious activity via PowerShell commands. |
 | T1027 | Obfuscated Files or Information | Attacker used legitimate-sounding file names (SupportTool.ps1, DefenderTamperArtifact.lnk) to disguise malicious intent. | Indicates deceptive naming conventions to evade detection. |
 | T1564.004 | NTFS File Attributes | Planted artifacts (DefenderTamperArtifact.lnk, SupportChat_log.txt) created to establish false narratives. | Identifies staged evidence designed to mislead investigators. |
@@ -364,7 +364,7 @@ This table organizes the MITRE ATT&CK techniques (TTPs) observed during the inve
 ## Response Taken
 
 | MITRE Mitigation ID | Name | Action Taken | Description | Relevance |
-|---------------------|------|--------------|-------------|-----------|
+|:---------------------:|:------:|:--------------:|:-------------:|:-----------:|
 | M1038 | Execution Prevention | PowerShell Constrained Language Mode | Implemented PowerShell Constrained Language Mode on intern workstations to restrict unapproved script execution and prevent -ExecutionPolicy Bypass. | Prevents unauthorized script execution by enforcing language restrictions. |
 | M1026 | Privileged Account Management | Account Credential Reset | Reset credentials for user account "g4bri3lintern" and implemented mandatory password change with MFA enrollment. | Mitigates unauthorized access risks by invalidating potentially compromised credentials. |
 | M1031 | Network Intrusion Prevention | Network Egress Filtering | Blocked outbound connections to testing/debugging services (httpbin.org, example.com) at network perimeter. | Prevents data exfiltration to known testing endpoints. |
