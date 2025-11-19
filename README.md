@@ -316,6 +316,28 @@ The analysis revealed that the target device, gab-intern-vm, was compromised and
 
 ---
 
+## Timeline
+
+| Time (UTC) | Steps Taken | Action Observed | Key Evidence |
+|--------|----------|-------------|---------------------|
+| 2025-10-09T12:22:27.6588913Z | 1 | Initial Execution Detection | Creation of SupportTool.ps1 and execution with -ExecutionPolicy Bypass |
+| 2025-10-09T12:34:59.1260624Z | 2 | Defense Disabling | DefenderTamperArtifact.lnk |
+| 2025-10-09T12:50:39.955931Z | 3 | Quick Data Probe | Get-Clipboard command: "powershell.exe" -NoProfile -Sta -Command "try { Get-Clipboard | Out-Null } catch { }" |
+| 2025-10-09T12:51:44.3425653Z | 4 | Host Context Reconnaissance | Query session (i.e., qwinsta) |
+| 2025-10-09T12:51:18.3848072Z | 5 | Storage Surface Mapping | wmic logicaldisk enumeration |
+| 2025-10-09T12:51:31.5692262Z | 6 | Connectivity & Name Resolution Check | RuntimeBroker.exe parent process |
+| 2025-10-09T12:50:59.3449917Z | 7 | Interactive Session Discovery | Initiating Process UniqueId: 2533274790397065 |
+| 2025-10-09T12:51:57.6866149Z | 8 | Runtime Application Inventory | tasklist.exe |
+| 2025-10-09T12:52:14.3135459Z | 9 | Privilege Surface Check | whoami /groups |
+| 2025-10-09T12:55:05.7658713Z | 10 | Proof-of-Access & Egress Validation | www.msftconnecttest.com |
+| 2025-10-09T12:58:17.4364257Z | 11 | Bundling / Staging Artifacts | C:\Users\Public\ReconArtifacts.zip |
+| 2025-10-09T13:00:40.045127Z | 12 | Outbound Transfer Attempt (Simulated) | httpbin.org (100.29.147.161) |
+| 2025-10-09T13:01:28.7700443Z | 13 | Scheduled Re-Execution Persistence | SupportToolUpdater (ONLOGON) |
+| N/A | 14 | Autorun Fallback Persistence | RemoteAssistUpdater |
+| 2025-10-09T13:02:41.5698148Z | 15 | Planted Narrative / Cover Artifact | SupportChat_log.lnk |
+
+---
+
 ## Relevant MITRE ATT&CK TTPs
 
 | TTP ID | TTP Name | Description | Detection Relevance |
