@@ -1,8 +1,6 @@
 # Threat Hunt Report: Fabricated Support Incident and Data Exfiltration
 
-<img width="1024" height="965" alt="Data Exfiltration Image v5" src="https://github.com/user-attachments/assets/103db624-3abf-44be-88ac-8772cb1b101b" />
-
-##  Scenario
+##  Executive Summary
 
 Subsequent analysis of a routine support request reveals behavior inconsistent with typical remote assistance. Multiple artifacts were left behind, including unusual process executions and system modifications. Notably, a post-session narrative was introduced to explain away anomalies, though forensic traces suggest a premeditated sequence of access and manipulation. This investigation seeks to reconstruct the timeline of activity and determine whether the actions taken were aligned with support protocols or if they were intentionally staged under the guise of assistance.
 
